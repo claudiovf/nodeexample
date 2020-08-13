@@ -27,13 +27,3 @@ Note.find({}).then(result => {
     mongoose.connection.close()
 })
 
-// const note = new Note({
-//     content: 'CSS is easy',
-//     date: new Date(),
-//     important: true,
-// })
-
-// note.save().then(result => {
-//     console.log(result.content, ' note saved!')
-//     mongoose.connection.close()
-// })

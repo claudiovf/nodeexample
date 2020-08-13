@@ -21,16 +21,22 @@ app.get('/api/notes', (req,res) => {
         })
 })
 
-app.get('/api/notes/:id', (req,res) => {
-    Note.findById(request.params.id).then(note => {
-        res.json(note)
-    })
+app.get('/api/notes/:id', (req,res, next) => {
+    Note.findById(req.params.id)
+        .then(note => {
+            if(note) {
+                res.json(note)
+            }else {
+                res.status(404).end()
+            }
+        })
+        .catch(error => next(error))
 })
 
 //..notes.map will return values to Math instead of an array
 //like notes.map would
 
-app.post('/api/notes', (req, res) => {
+app.post('/api/notes', (req, res, next) => {
     const body = req.body
     
     if(!body.content) {
@@ -47,19 +53,56 @@ app.post('/api/notes', (req, res) => {
     })
     note
         .save()
-        .then(savedNote => {
-            res.json(savedNote)
+        .then(savedNote => savedNote.toJSON())
+        .then(savedAndFormatted => {
+            res.json(savedAndFormatted)
         })
+        .catch(error => next(error))
 })
 
-app.delete('/api/notes/:id', (req, res) => {
-    const id = Number(req.params.id)
-    notes = notes.filter(note => note.id !== id)
+app.delete('/api/notes/:id', (req, res, next) => {
+    Notes.findByIdAndRemove(req.params.id)
+        .then(result => {
+            res.status(204).end()
+        })
+        .catch(error => next(error))
 
-    console.log(id, notes)
-
-    res.status(204).end()
 })
+
+app.put('/api/notes/:id', (req, res, next) => {
+    const body = req.body
+    
+    const note = {
+        content: body.content,
+        important: body.important,
+    }
+
+    Note.findByIdAndUpdate(req.body.id, note, {new: true})
+        .then(updatedNote => {
+            res.json(updatedNote)
+        })
+        .catch(error => next(error))
+})
+
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint' })
+  }
+
+app.use(unknownEndpoint)
+
+
+const errorHandler = (error, req, res, next) => {
+    console.log(error.message)
+    if(error.name === 'CastError') {
+        return res.status(400).send({ error: 'malformatted id'})
+    } else if (error.name === 'ValidationError') {
+        return res.status(400).json({ error: error.message })
+    }
+
+    next(error)
+}
+app.use(errorHandler)
+
 
 
 const PORT = process.env.PORT
